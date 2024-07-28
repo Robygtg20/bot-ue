@@ -7,17 +7,23 @@ from colorama import init, Fore, Back, Style
 # Initialize colorama
 init(autoreset=True)
 
-# URL API
+# URLs for API endpoints
 login_url = "https://zejlgz.com/api/login/tg"
 assets_url = "https://zejlgz.com/api/user/assets"
 info_url = "https://zejlgz.com/api/scene/info"
 reward_url = "https://zejlgz.com/api/scene/egg/reward"
+red_get_url = "https://zejlgz.com/api/red/get"
+red_reward_url = "https://zejlgz.com/api/red/reward"
 
 # Read data from accounts.txt
 with open('accounts.txt', 'r') as file:
     accounts = file.readlines()
 
-# Headers if needed, can be added
+# Read code from code.txt
+with open('code.txt', 'r') as file:
+    code = file.read().strip()
+
+# Headers for API requests
 headers = {
     "Content-Type": "application/json"
 }
@@ -46,11 +52,9 @@ ascii_art = f"""
 ██████╔╝╚██████╔╝   ██║       ╚██████╔╝███████╗
 ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝ ╚══════╝ 
 """
-
 print(ascii_art)
 
 while True:  # Infinite loop to keep claiming
-    # Iterate through each account
     for account in accounts:
         init_data = account.strip()
         
@@ -75,6 +79,52 @@ while True:  # Infinite loop to keep claiming
                 print(f"Token: {token_info['token']}")
                 print("=================================")
                 
+                # New section: Perform red get API call
+                red_get_payload = {
+                    "token": token_info['token'],
+                    "code": code  # Include the code from code.txt
+                }
+                red_get_response = requests.post(red_get_url, data=json.dumps(red_get_payload), headers=headers)
+                
+                # Check response status code from red get
+                if red_get_response.status_code == 200:
+                    red_get_response_data = red_get_response.json()
+                    if red_get_response_data.get('code') == 0:
+                        print(Fore.MAGENTA + "Red get berhasil")
+                        print("=================================")
+                        
+                        # New section: Perform red reward API call
+                        red_reward_payload = {
+                            "token": token_info['token'],
+                            "code": code
+                        }
+                        red_reward_response = requests.post(red_reward_url, data=json.dumps(red_reward_payload), headers=headers)
+                        
+                        # Check response status code from red reward
+                        if red_reward_response.status_code == 200:
+                            red_reward_response_data = red_reward_response.json()
+                            if red_reward_response_data.get('code') == 0:
+                                print(Fore.GREEN + "Red reward claim berhasil")
+                                print("=================================")
+                            else:
+                                print(f"Red reward claim gagal! Kode kesalahan: {red_reward_response_data.get('code')}")
+                        else:
+                            print("Red reward claim gagal!")
+                            print("Status Code:", red_reward_response.status_code)
+                            print("Response:", red_reward_response.text)
+                    else:
+                        error_code = red_get_response_data.get('code')
+                        print(f"Red get gagal! Kode kesalahan: {error_code}")
+                        print("Response data:", red_get_response_data)
+                        # Implement specific handling for known error codes
+                        if error_code == -2:
+                            print("Error -2: Specific handling for this error.")
+                        # Add more error handling as needed
+                else:
+                    print("Red get gagal!")
+                    print("Status Code:", red_get_response.status_code)
+                    print("Response:", red_get_response.text)
+
                 # Payload to check assets
                 assets_payload = {
                     "token": token_info['token']
